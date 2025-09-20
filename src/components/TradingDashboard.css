@@ -1,0 +1,55 @@
+
+
+/* Animações para o dashboard */
+.dashboard-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.dashboard-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s ease-out;
+}
+
+/* Hover effects para botões */
+.bot-control-button {
+  transition: all 0.2s ease;
+}
+
+.bot-control-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
+}
+
+/* Estilo para o seletor de estratégia */
+.strategy-select {
+  background: #333333;
+  border: 1px solid #444444;
+  color: #ffffff;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.strategy-select:focus {
+  border-color: #00ff88;
+  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+  outline: none;
+}
+
+.strategy-select option {
+  background: #333333;
+  color: #ffffff;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .logo-text {
+    font-size: 1.25rem;
+  }
+  
+  .logo-a {
+    font-size: 1.5rem;
+  }
+}
+
