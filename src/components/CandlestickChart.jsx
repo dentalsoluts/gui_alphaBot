@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ComposedChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Bar, ReferenceDot } from 'recharts'
+import technicalAnalysis from '../services/technicalAnalysis.js'
 
 // === Ajustes gerais ===
 export const ARROW_PADDING = 0.0002
@@ -109,6 +110,42 @@ const ArrowInsideShape = ({ cx, cy, side = 'buy', size = 8, opacity = 1 }) => {
 }
 
 /**
+ * Seta indicativa de decisão do bot (aleatória)
+ *  - BUY: triângulo para cima (▲) - cor verde
+ *  - SELL: triângulo para baixo (▼) - cor laranja
+ */
+const BotDecisionArrow = ({ cx, cy, signal = 'buy', size = 6, opacity = 1 }) => {
+  const colors = {
+    buy: '#10b981',    // Verde para compra
+    sell: '#f59e0b'    // Laranja para venda
+  }
+  
+  const fill = colors[signal] || colors.buy
+  
+  return (
+    <g transform={`translate(${cx}, ${cy})`} opacity={opacity} filter="url(#decisionShadow)" pointerEvents="none">
+      {signal === 'buy' ? (
+        // ▲ (COMPRA - aponta para cima - VERDE)
+        <path
+          d={`M 0 0 L ${-size/2} ${-size} L ${size/2} ${-size} Z`}
+          fill={fill}
+          stroke="white"
+          strokeWidth="0.5"
+        />
+      ) : (
+        // ▼ (VENDA - aponta para baixo - LARANJA)
+        <path
+          d={`M 0 0 L ${-size/2} ${size} L ${size/2} ${size} Z`}
+          fill={fill}
+          stroke="white"
+          strokeWidth="0.5"
+        />
+      )}
+    </g>
+  )
+}
+
+/**
  * Props esperadas:
  * - isConnected?: boolean
  * - externalMarkers: Array<{ id?: number; x: number; side: 'buy'|'sell' }>
@@ -189,6 +226,33 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
     const last = candleData[candleData.length - 1]
     return { yMin: minLow, yMax: maxHigh, xMin: minT, xMax: maxT, lastDuration: last?.durationMs ?? candleMs }
   }, [candleData, candleMs])
+
+  // ===== Gerar setas de decisão do bot (aleatórias) =====
+  const botDecisionMarkers = useMemo(() => {
+    if (!candleData.length) return []
+    
+    const signals = technicalAnalysis.generateSignals(candleData)
+    const rightPad = lastDuration * 0.5
+    const left = xMin, right = xMax + rightPad
+    
+    return signals
+      .filter(s => s.timestamp >= left && s.timestamp <= right)
+      .map(signal => {
+        const candle = signal.candle
+        
+        // Posiciona a seta ACIMA da vela
+        const y = candle.high + (yMax - yMin) * 0.02 // 2% acima do high da vela
+        
+        return {
+          id: `bot-decision-${signal.timestamp}`,
+          x: signal.timestamp,
+          y: y,
+          signal: signal.signal,
+          size: 8,
+          opacity: 0.9
+        }
+      })
+  }, [candleData, xMin, xMax, lastDuration, yMin, yMax])
 
   // ===== Empilhar setas DENTRO do candle (BUY em cima, SELL embaixo) =====
   const styledMarkers = useMemo(() => {
@@ -319,6 +383,10 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
             <filter id="markerShadow" x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="0.5" stdDeviation="1" floodOpacity="0.4" />
             </filter>
+            {/* sombra suave nas setas de decisão do bot */}
+            <filter id="decisionShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="0.3" stdDeviation="0.8" floodOpacity="0.3" />
+            </filter>
           </defs>
 
           <CartesianGrid strokeDasharray="3 3" stroke="#444444" />
@@ -355,6 +423,19 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
               isFront
               ifOverflow="hidden"
               shape={(props) => <ArrowInsideShape {...props} side={m.side} size={m.size} opacity={m.opacity} />}
+            />
+          ))}
+
+          {/* setas de decisão do bot (análise técnica) */}
+          {botDecisionMarkers.map((m) => (
+            <ReferenceDot
+              key={m.id}
+              x={m.x}
+              y={m.y}
+              r={0}
+              isFront
+              ifOverflow="hidden"
+              shape={(props) => <BotDecisionArrow {...props} signal={m.signal} size={m.size} opacity={m.opacity} />}
             />
           ))}
         </ComposedChart>
