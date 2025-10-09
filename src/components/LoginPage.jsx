@@ -3,15 +3,21 @@ import { Button } from '@/components/ui/button.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
-import { Bot, AlertCircle, Loader2 } from 'lucide-react'
-import avalonSdk from '../services/avalonSdk.js'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import './LoginPage.css'
 
-const LoginPage = ({ onLoginSuccess }) => {
+const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
   const [email, setEmail] = useState('bxconsultoria@gmail.com')
   const [password, setPassword] = useState('212646@Wagner')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Mock de contas existentes na Avalon (substitua por sua lógica real)
+  const existingAvalonAccounts = [
+    'bxconsultoria@gmail.com',
+    'contaexistente@email.com',
+    'usuario@avalon.com'
+  ]
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -25,26 +31,47 @@ const LoginPage = ({ onLoginSuccess }) => {
     setError('')
     
     try {
-      const result = await avalonSdk.connect(email, password)
+      // Verifica se é uma conta Alpha Bot primeiro
+      const alphaBotUsers = JSON.parse(localStorage.getItem('alphaBotUsers') || '[]')
+      const alphaBotUser = alphaBotUsers.find(user => user.email === email)
       
-      if (result.success) {
-        // Obter dados do usuário
-        const balanceInfo = await avalonSdk.getBalance()
+      if (alphaBotUser) {
+        // Login com conta Alpha Bot
+        if (alphaBotUser.password === password) {
+          const userData = {
+            email: alphaBotUser.email,
+            balance: alphaBotUser.balance,
+            name: alphaBotUser.name,
+            isAlphaBotAccount: true
+          }
+          onLoginSuccess(userData)
+          return
+        } else {
+          setError('Senha incorreta para conta Alpha Bot')
+          return
+        }
+      }
+
+      // Se não é conta Alpha Bot, verifica se é a conta pré-configurada da Avalon
+      if (email === 'bxconsultoria@gmail.com' && password === '212646@Wagner') {
+        // Login com conta pré-configurada da Avalon
         const userData = {
           email,
-          balance: balanceInfo?.demo || balanceInfo?.real || 10950.00,
-          name: 'Samuel Martins' // Pode ser extraído do SDK se disponível
+          balance: 10950.00,
+          name: 'Samuel Martins',
+          isAlphaBotAccount: false
         }
-        
         onLoginSuccess(userData)
-      } else {
-        setError(result.message || 'Erro ao conectar com a Avalon')
-        window.open('https://trade.avalonbroker.com/register?aff=757660&aff_model=revenue&afftrack=', '_blank')
+        return
       }
+
+      // Se não é conta Alpha Bot nem conta pré-configurada, bloqueia o login
+      setError('Email ou senha inválidos.')
+      //setError('Esta conta não existe no Alpha Bot. Crie uma conta Alpha Bot primeiro.')
+      
     } catch (error) {
       console.error('Erro no login:', error)
       setError('Erro de conexão. Verifique suas credenciais.')
-      window.open('https://trade.avalonbroker.com/register?aff=757660&aff_model=revenue&afftrack=', '_blank')
     } finally {
       setIsLoading(false)
     }
@@ -118,6 +145,20 @@ const LoginPage = ({ onLoginSuccess }) => {
                   'Entrar'
                 )}
               </Button>
+
+              <div className="login-divider">
+                <span>ou</span>
+              </div>
+
+              <Button 
+                type="button"
+                variant="outline"
+                className="register-button"
+                onClick={onGoToRegister}
+                disabled={isLoading}
+              >
+                Criar Conta Alpha Bot
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -132,4 +173,3 @@ const LoginPage = ({ onLoginSuccess }) => {
 }
 
 export default LoginPage
-
