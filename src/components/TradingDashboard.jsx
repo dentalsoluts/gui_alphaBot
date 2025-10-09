@@ -30,6 +30,7 @@ const TradingDashboard = ({ userData = {}, onLogout }) => {
   // gráfico
   const [markers, setMarkers] = useState([])
   const lastCandleRef = useRef(null)
+  const [timeframeMs, setTimeframeMs] = useState(30_000)
 
   // relatório
   const [trades, setTrades] = useState([])
@@ -189,17 +190,38 @@ const TradingDashboard = ({ userData = {}, onLogout }) => {
                   <TrendingUp className="h-5 w-5" />
                   <span>Gráfico de Candles - Avalon Broker</span>
                 </div>
-                {!botPanelOpen && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBotPanelOpen(true)}
-                    className="flex items-center space-x-2"
-                  >
-                    <Bot className="h-4 w-4" />
-                    <span>Status Bot</span>
-                  </Button>
-                )}
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <select
+                      value={timeframeMs}
+                      onChange={(e) => setTimeframeMs(Number(e.target.value))}
+                      className="strategy-select px-2 py-1 text-sm"
+                      title="Intervalo do gráfico"
+                    >
+                      <option value={5000}>5s</option>
+                      <option value={10000}>10s</option>
+                      <option value={15000}>15s</option>
+                      <option value={30000}>30s</option>
+                      <option value={60000}>1m</option>
+                      <option value={120000}>2m</option>
+                      <option value={300000}>5m</option>
+                      <option value={600000}>10m</option>
+                      <option value={900000}>15m</option>
+                      <option value={1800000}>30m</option>
+                    </select>
+                  </div>
+                  {!botPanelOpen && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBotPanelOpen(true)}
+                      className="flex items-center space-x-2"
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span>Status Bot</span>
+                    </Button>
+                  )}
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent className="h-[calc(100%-80px)]">
@@ -207,6 +229,7 @@ const TradingDashboard = ({ userData = {}, onLogout }) => {
                 isConnected
                 externalMarkers={markers}
                 onTick={(c) => { lastCandleRef.current = c }}
+                timeframeMs={timeframeMs}
               />
             </CardContent>
           </Card>
