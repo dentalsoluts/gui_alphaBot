@@ -7,13 +7,13 @@ const CANDLE_MS = 60_000           // 1 minuto
 const MAX_MARKERS = 120            // quantas setas renderizar no máximo
 
 // === Mock de candles (50 velas) ===
-function generateMockCandleData() {
+function generateMockCandleData(candleMs) {
   const data = []
   let price = 1.25
   const now = Date.now()
 
   for (let i = 0; i < 50; i++) {
-    const ts = now - (49 - i) * CANDLE_MS
+    const ts = now - (49 - i) * candleMs
     const open = price
     const change = (Math.random() - 0.5) * 0.01
     const close = open + change
@@ -28,7 +28,7 @@ function generateMockCandleData() {
       low:  +low.toFixed(5),
       close:+close.toFixed(5),
       volume: Math.floor(Math.random() * 1000) + 100,
-      durationMs: CANDLE_MS,
+      durationMs: candleMs,
     })
     price = close
   }
@@ -115,17 +115,18 @@ const ArrowInsideShape = ({ cx, cy, side = 'buy', size = 8, opacity = 1 }) => {
  *     -> x em ms (timestamp). o y é recalculado para ficar **dentro** da vela.
  * - onTick?: (lastCandle) => void
  */
-export default function CandlestickChart({ isConnected = true, externalMarkers = [], onTick }) {
+export default function CandlestickChart({ isConnected = true, externalMarkers = [], onTick, timeframeMs }) {
   const [candleData, setCandleData] = useState([])
   const [currentPrice, setCurrentPrice] = useState(null)
+  const candleMs = typeof timeframeMs === 'number' && timeframeMs > 0 ? timeframeMs : CANDLE_MS
 
   // primeiro load
   useEffect(() => {
-    const initial = generateMockCandleData()
+    const initial = generateMockCandleData(candleMs)
     setCandleData(initial)
     setCurrentPrice(initial[initial.length - 1]?.close ?? null)
     onTick?.(initial[initial.length - 1])
-  }, []) // eslint-disable-line
+  }, [candleMs]) // eslint-disable-line
 
   // Mercado mock: rollover 1min + microticks
   useEffect(() => {
@@ -138,8 +139,8 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
         const now = Date.now()
 
         // cria velas perdidas (se a aba ficou “parada”)
-        while (now - last.timeMs >= CANDLE_MS) {
-          const ts = last.timeMs + CANDLE_MS
+        while (now - last.timeMs >= candleMs) {
+          const ts = last.timeMs + candleMs
           const bias = Math.sign(last.close - last.open) * 0.002
           const step = bias + (Math.random() - 0.5) * 0.004
           const open  = last.close
@@ -151,7 +152,7 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
             time: new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             open:+open.toFixed(5), high:+high.toFixed(5), low:+low.toFixed(5), close:+close.toFixed(5),
             volume: Math.floor(Math.random() * 1000) + 100,
-            durationMs: CANDLE_MS,
+            durationMs: candleMs,
           }
           arr.push(next)
           if (arr.length > 50) arr = arr.slice(-50)
@@ -173,11 +174,11 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
       })
     }, 800)
     return () => clearInterval(id)
-  }, [isConnected, onTick])
+  }, [isConnected, onTick, candleMs])
 
   // Domínios
   const { yMin, yMax, xMin, xMax, lastDuration } = useMemo(() => {
-    if (!candleData.length) return { yMin: 0, yMax: 1, xMin: 0, xMax: 1, lastDuration: CANDLE_MS }
+    if (!candleData.length) return { yMin: 0, yMax: 1, xMin: 0, xMax: 1, lastDuration: candleMs }
     let minLow = Infinity, maxHigh = -Infinity, minT = Infinity, maxT = -Infinity
     for (const c of candleData) {
       if (c.low  < minLow)  minLow  = c.low
@@ -186,8 +187,8 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
       if (c.timeMs > maxT)  maxT    = c.timeMs
     }
     const last = candleData[candleData.length - 1]
-    return { yMin: minLow, yMax: maxHigh, xMin: minT, xMax: maxT, lastDuration: last?.durationMs ?? CANDLE_MS }
-  }, [candleData])
+    return { yMin: minLow, yMax: maxHigh, xMin: minT, xMax: maxT, lastDuration: last?.durationMs ?? candleMs }
+  }, [candleData, candleMs])
 
   // ===== Empilhar setas DENTRO do candle (BUY em cima, SELL embaixo) =====
   const styledMarkers = useMemo(() => {
@@ -299,7 +300,7 @@ export default function CandlestickChart({ isConnected = true, externalMarkers =
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-lg font-semibold">EUR/USD</h3>
-          <p className="text-sm text-muted-foreground">Gráfico de 1 minuto (mock)</p>
+          <p className="text-sm text-muted-foreground">Intervalo: {Math.round(candleMs >= 60000 ? candleMs/60000 : candleMs/1000)}{candleMs >= 60000 ? 'm' : 's'} (mock)</p>
         </div>
         {currentPrice != null && (
           <div className="text-right">
