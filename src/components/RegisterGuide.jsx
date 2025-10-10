@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
 import { ArrowLeft, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import AvalonAccountModal from '@/components/ui/avalon-account-modal.jsx'
 import './LoginPage.css'
 
 const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
@@ -15,10 +16,11 @@ const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
   })
   const [registerLoading, setRegisterLoading] = useState(false)
   const [registerError, setRegisterError] = useState('')
+  const [showAvalonModal, setShowAvalonModal] = useState(false)
 
   // Mock de contas existentes na Avalon (substitua por sua lógica real)
   const existingAvalonAccounts = [
-    'gus.barretogg@gmail.com',
+    'teste2@gmail.com',
     'contaexistente@email.com',
     'usuario@avalon.com',
     'abc@teste.com'
@@ -50,7 +52,8 @@ const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
       const accountExistsInAvalon = existingAvalonAccounts.includes(registerData.email.toLowerCase())
       
       if (accountExistsInAvalon) {
-        setRegisterError('❌ Este e-mail já possui conta na Avalon. Use um e-mail diferente para criar no Alpha Bot.')
+        setShowAvalonModal(true)
+        setRegisterLoading(false)
         return
       }
 
@@ -92,6 +95,18 @@ const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
   const checkAvalonAccountExists = (email) => {
     // Verificação mock - substitua por verificação real na Avalon
     return existingAvalonAccounts.includes(email.toLowerCase())
+  }
+
+  const handleEmailBlur = () => {
+    if (registerData.email && checkAvalonAccountExists(registerData.email)) {
+      setShowAvalonModal(true)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowAvalonModal(false)
+    // Limpa o campo de email para facilitar nova digitação
+    setRegisterData({...registerData, email: ''})
   }
 
   return (
@@ -147,15 +162,8 @@ const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
                   type="email"
                   placeholder="E-mail"
                   value={registerData.email}
-                  onChange={(e) => {
-                    setRegisterData({...registerData, email: e.target.value})
-                    // Verificação em tempo real
-                    if (e.target.value && checkAvalonAccountExists(e.target.value)) {
-                      setRegisterError('⚠️ Este e-mail já tem conta na Avalon. Use um e-mail diferente.')
-                    } else if (registerError && registerError.includes('Avalon')) {
-                      setRegisterError('')
-                    }
-                  }}
+                  onChange={(e) => setRegisterData({...registerData, email: e.target.value})}
+                  onBlur={handleEmailBlur}
                   disabled={registerLoading}
                   className="login-input"
                 />
@@ -250,6 +258,13 @@ const RegisterGuide = ({ onBackToLogin, onRegisterSuccess }) => {
           <p>Powered by Avalon Broker SDK</p>
         </div>
       </div>
+
+      {/* Modal de conta existente na Avalon */}
+      <AvalonAccountModal
+        isOpen={showAvalonModal}
+        onClose={handleCloseModal}
+        email={registerData.email}
+      />
     </div>
   )
 }

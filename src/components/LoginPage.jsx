@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Alert, AlertDescription } from '@/components/ui/alert.jsx'
 import { AlertCircle, Loader2 } from 'lucide-react'
+import AvalonAccountModal from '@/components/ui/avalon-account-modal.jsx'
 import './LoginPage.css'
 
 const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
@@ -11,6 +12,7 @@ const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
   const [password, setPassword] = useState('212646@Wagner')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showAvalonModal, setShowAvalonModal] = useState(false)
 
   // Mock de contas existentes na Avalon (substitua por sua lógica real)
   const existingAvalonAccounts = [
@@ -18,6 +20,22 @@ const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
     'contaexistente@email.com',
     'usuario@avalon.com'
   ]
+
+  const checkAvalonAccountExists = (email) => {
+    return existingAvalonAccounts.includes(email.toLowerCase())
+  }
+
+  const handleEmailBlur = () => {
+    if (email && checkAvalonAccountExists(email)) {
+      setShowAvalonModal(true)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowAvalonModal(false)
+    // Limpa o campo de email para facilitar nova digitação
+    setEmail('')
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -108,6 +126,7 @@ const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
                   placeholder="E-mail"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={handleEmailBlur}
                   disabled={isLoading}
                   className="login-input"
                 />
@@ -168,6 +187,13 @@ const LoginPage = ({ onLoginSuccess, onGoToRegister }) => {
           <p>Powered by Avalon Broker SDK</p>
         </div>
       </div>
+
+      {/* Modal de conta existente na Avalon */}
+      <AvalonAccountModal
+        isOpen={showAvalonModal}
+        onClose={handleCloseModal}
+        email={email}
+      />
     </div>
   )
 }
